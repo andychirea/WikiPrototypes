@@ -5,14 +5,13 @@ using Rhino.Collections;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace WikiPrototypes
 {
     public class StraightWall : GH_Component
     {
         public StraightWall()
-          : base("StraightWall", "Nickname",
+          : base("Straight Wall", "SWall",
               "A parametric straight wall",
               "WikiPrototypes", "Walls")
         {

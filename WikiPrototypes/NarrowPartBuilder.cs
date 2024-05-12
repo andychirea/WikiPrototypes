@@ -38,7 +38,7 @@ namespace WikiPrototypes
             return result[0];
         }
 
-        public static Curve GetEndConnector(double posX, double posY, bool rotate)
+        public static Curve GetEndConnector(double posX, double posY, bool otherEnd)
         {
             var rot90 = Math.PI * .5;
 
@@ -54,7 +54,7 @@ namespace WikiPrototypes
             var result = Curve.JoinCurves(new Curve[]
             { rConnector, lConnector, rsLine, lsLine, lfLine, rfLine, mLine })[0];
 
-            if (!rotate)
+            if (!otherEnd)
                 return result;
 
             var transform = new Transform(1)
