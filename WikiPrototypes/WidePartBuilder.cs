@@ -1,4 +1,6 @@
-﻿using Rhino.Geometry;
+﻿using Grasshopper.Kernel.Types.Transforms;
+using Rhino.Commands;
+using Rhino.Geometry;
 using System;
 
 namespace WikiPrototypes
@@ -17,7 +19,6 @@ namespace WikiPrototypes
             return result;
         }
 
-        // Cut layer
         public static Curve[] GetMiddleSquareConnector(double posX, double posY)
         {
             var xExtends = 30;
@@ -49,7 +50,19 @@ namespace WikiPrototypes
             return result;
         }
 
-        // Cut layer
+        public static Curve[] GetMiddleSquareMill(double posX, double posY)
+        {
+            var rot90 = Math.PI * .5;
+
+            var curves = new Curve[]
+            {
+                ConnectorBuilder.GetMillLongRoundShape(posX + 29.1, posY, 3.188, rot90),
+                ConnectorBuilder.GetMillLongRoundShape(posX - 29.1, posY, 3.188, rot90),
+            };
+
+            return curves;
+        }
+
         public static Curve[] GetMiddleParallelConnector(double posX, double posY)
         {
             var xExtends = 30;
@@ -90,7 +103,21 @@ namespace WikiPrototypes
             return result;
         }
 
-        // Cut layer
+        public static Curve[] GetMiddleParallelMill(double posX, double posY)
+        {
+            var rot90 = Math.PI * .5;
+
+            var curves = new Curve[]
+            {
+                ConnectorBuilder.GetMillRoundShape(posX + 24.4, posY + 10.445, rot90),
+                ConnectorBuilder.GetMillRoundShape(posX - 24.4, posY + 10.445, -rot90),
+                ConnectorBuilder.GetMillRoundShape(posX + 24.4, posY - 10.445, rot90),
+                ConnectorBuilder.GetMillRoundShape(posX - 24.4, posY - 10.445, -rot90),
+            };
+
+            return curves;
+        }
+
         public static Curve GetEndConnector(double posX, double posY, double excess, bool hole, double rotation)
         {
             var lineFR = new Line(+26.934 + posX, posY, 0, +28.200 + posX, posY, 0).ToNurbsCurve();
@@ -234,6 +261,28 @@ namespace WikiPrototypes
                 curve.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
 
             return result;
+        }
+
+        public static Curve[] GetEndMill(double posX, double posY, double rotation)
+        {
+            var rot90 = Math.PI * .5;
+
+            var curves = new Curve[]
+            {
+                ConnectorBuilder.GetMillLongRoundShape(posX + 29.1, posY + 5.25, 1.313, rot90),
+                ConnectorBuilder.GetMillLongRoundShape(posX - 29.1, posY + 5.25, 1.313, rot90),
+                ConnectorBuilder.GetMillRoundShape(posX + 0.0, posY + 5.6, 0),
+                ConnectorBuilder.GetMillRoundShape(posX - 19.49, posY + 5.6, 0),
+                ConnectorBuilder.GetMillRoundShape(posX + 19.49, posY + 5.6, 0),
+            };
+
+            if (rotation % (Math.PI * 2) == 0)
+                return curves;
+
+            foreach (var curve in curves)
+                curve.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return curves;
         }
     }
 }

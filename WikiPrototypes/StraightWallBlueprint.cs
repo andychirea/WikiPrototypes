@@ -98,7 +98,7 @@ namespace WikiPrototypes
                 }
             }
 
-            SplitPart(contour, splitCurves, holes, index, NarrowPartBrachIndexes, out partCount);
+            SplitPart(contour, splitCurves, holes, new List<Curve>(), index, NarrowPartBrachIndexes, out partCount);
         }
 
         private void SolveWidePart(int index, double length, double maxPartLength, out int partCount)
@@ -111,10 +111,14 @@ namespace WikiPrototypes
 
             var splitCurves = new List<Curve>();
             var holes = new List<Curve>();
+            var mills = new List<Curve>();
             var curvesToConnect = new List<Curve>();
 
             var botCorner = WidePartBuilder.GetEndConnector(posX, 0, 0, true, 0);
             var upCorner = WidePartBuilder.GetEndConnector(posX, length, rest, moduleACount > moduleBCount, Math.PI);
+
+            mills.AddRange(WidePartBuilder.GetEndMill(posX, 0, 0));
+            mills.AddRange(WidePartBuilder.GetEndMill(posX, length, Math.PI));
 
             curvesToConnect.Add(botCorner);
             curvesToConnect.Add(upCorner);
@@ -123,6 +127,8 @@ namespace WikiPrototypes
             {
                 var posY = 60 * mA + 40 / 2 + 10;
                 curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(posX, posY));
+
+                mills.AddRange(WidePartBuilder.GetMiddleParallelMill(posX, posY));
             }
 
             for (int mB = 0; mB < moduleBCount; mB++)
@@ -130,10 +136,11 @@ namespace WikiPrototypes
                 var posY = 60 * mB + 20 / 2 + 50;
                 curvesToConnect.AddRange(WidePartBuilder.GetMiddleSquareConnector(posX, posY));
                 holes.AddRange(WidePartBuilder.GetMiddleHoles(posX, posY));
+
+                mills.AddRange(WidePartBuilder.GetMiddleSquareMill(posX, posY));
             }
 
             var contour = Curve.JoinCurves(curvesToConnect)[0];
-            holes.Add(contour);
 
             if (maxPartLength < length)
             {
@@ -147,10 +154,10 @@ namespace WikiPrototypes
                 }
             }
 
-            SplitPart(contour, splitCurves, holes, index, WidePartBrachIndexes, out partCount);
+            SplitPart(contour, splitCurves, holes, mills, index, WidePartBrachIndexes, out partCount);
         }
 
-        private void SplitPart(Curve contour, List<Curve> splitCurves, List<Curve> holes, int index, List<int> indexes, out int partCount)
+        private void SplitPart(Curve contour, List<Curve> splitCurves, List<Curve> holes, List<Curve> mills, int index, List<int> indexes, out int partCount)
         {
             if (splitCurves.Count == 0)
             {
@@ -158,6 +165,7 @@ namespace WikiPrototypes
 
                 OutsideCuts.Add(contour, path);
                 InsideCuts.AddRange(holes, path);
+                HalfMills.AddRange(mills);
 
                 indexes.Add(index);
 
@@ -234,6 +242,8 @@ namespace WikiPrototypes
                 var splitPart = splitParts[i];
                 OutsideCuts.Add(splitPart, new GH_Path(index + i));
 
+                var boundingBox = splitPart.GetBoundingBox(false);
+
                 var holesInsideSplitPart = new List<Curve>();
 
                 for (int j = holes.Count - 1; j >= 0; j--)
@@ -241,9 +251,9 @@ namespace WikiPrototypes
                     var hole = holes[j];
                     var holePoint = hole.PointAtStart;
 
-                    var containsHole = splitPart.Contains(holePoint, Plane.WorldXY, 0.001);
+                    var containsHole = boundingBox.Contains(holePoint);
 
-                    if (containsHole == PointContainment.Inside)
+                    if (containsHole)
                     {
                         holesInsideSplitPart.Add(hole);
                         holes.RemoveAt(j);
@@ -251,6 +261,24 @@ namespace WikiPrototypes
                 }
 
                 InsideCuts.AddRange(holesInsideSplitPart, new GH_Path(index + i));
+
+                var millsFromSplitPart = new List<Curve>();
+
+                for (int j = mills.Count - 1; j >= 0; j--)
+                {
+                    var mill = mills[j];
+                    var holePoint = mill.PointAtEnd;
+
+                    var containsHole = boundingBox.Contains(holePoint);
+
+                    if (containsHole)
+                    {
+                        millsFromSplitPart.Add(mill);
+                        mills.RemoveAt(j);
+                    }
+                }
+
+                HalfMills.AddRange(millsFromSplitPart, new GH_Path(index + i));
 
                 indexes.Add(index + i);
             }

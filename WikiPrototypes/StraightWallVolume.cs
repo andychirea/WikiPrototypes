@@ -1,5 +1,7 @@
 ﻿using Rhino.Geometry;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace WikiPrototypes
 {
@@ -18,13 +20,21 @@ namespace WikiPrototypes
             var rawShapes = new Brep[totalPartCount];
             var shapes = new List<Brep>();
 
+            var actions = new Action[totalPartCount];
+
             for (int i = 0; i < totalPartCount; i++)
             {
-                var contour = outsideCuts.Branch(i)[0];
-                var holes = insideCuts.Branch(i);
+                int index = i;
+                actions[index] = () =>
+                {
+                    var contour = outsideCuts.Branch(index)[0];
+                    var holes = insideCuts.Branch(index);
 
-                rawShapes[i] = Get3DShape(contour, holes, thickness);
+                    rawShapes[index] = Get3DShape(contour, holes, thickness);
+                };
             }
+
+            Parallel.Invoke(actions);
 
             var narrowPartReferencePlane = new Plane(new Point3d(0, 0, thickness * .5), Vector3d.XAxis, Vector3d.ZAxis);
             var narrowPartFinalRightPlane = new Plane(new Point3d(29.1, 0, 0), -Vector3d.YAxis, -Vector3d.XAxis);

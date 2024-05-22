@@ -5,6 +5,84 @@ namespace WikiPrototypes
 {
     public static class ConnectorBuilder
     {
+        public static Curve GetMillRoundShape(double posX, double posY, double rotation)
+        {
+            var points = new Point3d[]
+            {
+                new Point3d(posX - 2.1, posY, 0),
+                new Point3d(posX - 2.1, posY - .6, 0),
+                new Point3d(posX + 2.1, posY - .6, 0),
+                new Point3d(posX + 2.1, posY, 0),
+            };
+
+            var arc = new Arc(points[0], new Point3d(posX, posY + 2.1, 0), points[3]);
+            var polyline = new Polyline(points);
+
+            var curves = new Curve[]
+            {
+                polyline.ToNurbsCurve(),
+                arc.ToNurbsCurve(),
+            };
+
+            var result = Curve.JoinCurves(curves)[0];
+
+            if (rotation % (Math.PI * 2) == 0)
+                return result;
+
+            result.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return result;
+        }
+
+        public static Curve GetMillLongRoundShape(double posX, double posY, double length, double rotation)
+        {
+            var cMUR = new Point3d(posX + length + 0.575, posY + .9 - 0.325, 0);
+            var cMBR = new Point3d(posX + length + 0.575, posY - .9 + 0.325, 0);
+            var cMUL = new Point3d(posX - length - 0.575, posY + .9 - 0.325, 0);
+            var cMBL = new Point3d(posX - length - 0.575, posY - .9 + 0.325, 0);
+
+            var cUUR = new Point3d(posX + length, posY + .9, 0);
+            var cBBR = new Point3d(posX + length, posY - .9, 0);
+            var cUUL = new Point3d(posX - length, posY + .9, 0);
+            var cBBL = new Point3d(posX - length, posY - .9, 0);
+
+            var lineR = new Line(cMUR, cMBR);
+            var lineL = new Line(cMUL, cMBL);
+            var lineU = new Line(cUUL, cUUR);
+            var lineB = new Line(cBBL, cBBR);
+
+            var mUR = new Point3d(posX + length + 0.407, posY + .9 - 0.168, 0);
+            var mBR = new Point3d(posX + length + 0.407, posY - .9 + 0.168, 0);
+            var mUL = new Point3d(posX - length - 0.407, posY + .9 - 0.168, 0);
+            var mBL = new Point3d(posX - length - 0.407, posY - .9 + 0.168, 0);
+
+            var arcUR = new Arc(cUUR, mUR, cMUR);
+            var arcBR = new Arc(cMBR, mBR, cBBR);
+            var arcUL = new Arc(cUUL, mUL, cMUL);
+            var arcBL = new Arc(cMBL, mBL, cBBL);
+
+            var curves = new Curve[]
+            {
+                lineR.ToNurbsCurve(),
+                lineL.ToNurbsCurve(),
+                lineU.ToNurbsCurve(),
+                lineB.ToNurbsCurve(),
+                arcUR.ToNurbsCurve(),
+                arcBR.ToNurbsCurve(),
+                arcUL.ToNurbsCurve(),
+                arcBL.ToNurbsCurve(),
+            };
+
+            var result = Curve.JoinCurves(curves)[0];
+
+            if (rotation % (Math.PI * 2) == 0)
+                return result;
+
+            result.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return result;
+        }
+
         public static Curve GetParallelConnector(double posX, double posY, double rotation)
         {
             var arcApointA = new Point3d(-2.785 + posX, 0.000 + posY, 0);
