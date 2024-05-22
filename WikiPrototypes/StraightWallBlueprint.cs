@@ -1,98 +1,59 @@
 ﻿using Grasshopper;
-using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
-using Rhino.Collections;
 using Rhino.Geometry;
 using Rhino.Geometry.Intersect;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace WikiPrototypes
 {
-    public class StraightWall : GH_Component
+    public class StraightWallBlueprint
     {
-        public StraightWall()
-          : base("Straight Wall", "SWall",
-              "A parametric straight wall",
-              "WikiPrototypes", "Walls")
+        public DataTree<Curve> OutsideCuts { get; private set; } // Contours
+        public DataTree<Curve> InsideCuts { get; private set; } // Holes
+        public DataTree<Curve> HalfMills { get; private set; }
+
+        public List<int> NarrowPartBrachIndexes { get; private set; }
+        public List<int> WidePartBrachIndexes { get; private set; }
+        public List<int> TransversalPartBrachIndexes { get; private set; }
+
+        public StraightWallBlueprint(double length, double maxPartLength)
         {
+            OutsideCuts = new DataTree<Curve>();
+            InsideCuts = new DataTree<Curve>();
+            HalfMills = new DataTree<Curve>();
+
+            NarrowPartBrachIndexes = new List<int>();
+            WidePartBrachIndexes = new List<int>();
+            TransversalPartBrachIndexes = new List<int>();
+
+            SolveNarrowPart(0, length, maxPartLength, out var narrowPartCount);
+            SolveWidePart(narrowPartCount, length, maxPartLength, out var widePartCount);
+            SolveTransversalParts(narrowPartCount + widePartCount, length, out _);
         }
 
-        protected override void RegisterInputParams(GH_InputParamManager pManager)
+        private void SolveTransversalParts(int index, double length, out int partCount)
         {
-            pManager.AddNumberParameter("Length", "L", "Wall length", GH_ParamAccess.item, 120);
-            pManager.AddNumberParameter("Max Part Length", "M", "The maximum lenght of a splitContour", GH_ParamAccess.item, 250);
-        }
+            var posX = -60;
 
-        protected override void RegisterOutputParams(GH_OutputParamManager pManager)
-        {
-            pManager.AddCurveParameter("Parts", "P", "Plans of the parts", GH_ParamAccess.tree);
-            pManager.AddBrepParameter("3D Parts", "3D", "Breps of the parts", GH_ParamAccess.list);
-        }
+            var connectorCount = Math.Floor((length - 50 + 20 / 2) / 60);
+            partCount = (int)connectorCount;
 
-        protected override void SolveInstance(IGH_DataAccess DA)
-        {
-            var length = 120.0;
-            var maxPartLength = 250.0;
-
-            DA.GetData(0, ref length);
-            DA.GetData(1, ref maxPartLength);
-
-            length = Math.Max(length, 60);
-            maxPartLength = Math.Max(maxPartLength, 60);
-
-            var dataTree = new DataTree<Curve>();
-
-            SolveNarrowPart(dataTree, 0, length, maxPartLength, out var narrowPartCount);
-            SolveWidePart(dataTree, narrowPartCount, length, maxPartLength, out var widePartCount);
-
-            DA.SetDataTree(0, dataTree);
-
-            var totalPartCount = narrowPartCount + widePartCount;
-            var shapes = new Brep[totalPartCount];
-
-            for (int i = 0; i < totalPartCount; i++)
+            for (int i = 0; i < partCount; i++)
             {
-                var curves = dataTree.Branch(i);
-                var contour = curves[0];
-                var holes = new Curve[curves.Count - 1];
-                
-                for (var j = 1; j < curves.Count; j++)
-                {
-                    holes[j - 1] = curves[j];
-                }
+                var translation = Transform.Translation(posX, 60 + 60 * i, 0);
+                var contour = TransversalPartBuilder.GetContour();
+                contour.Transform(translation);
 
-                shapes[i] = Get3DShape(contour, holes);
+                OutsideCuts.Add(contour, new GH_Path(index + i));
+                InsideCuts.EnsurePath(index + i);
+                HalfMills.EnsurePath(index + i);
+
+                TransversalPartBrachIndexes.Add(index + i);
             }
-
-            //Parallel.Invoke(
-            //    () => shapes[0] = Get3DShape(narrowContour, narrowHoles),
-            //    () => shapes[1] = Get3DShape(wideContour, wideHoles)
-            //    );
-
-            DA.SetDataList(1, shapes);
         }
 
-        private Brep Get3DShape(Curve contour, IEnumerable<Curve> holes)
-        {
-            var surface = Brep.CreateTrimmedPlane(Plane.WorldXY, contour);
-
-            foreach (var hole in holes)
-            {
-                var holeBoundaries = new Curve[]
-                {
-                    hole
-                };
-                surface.Loops.AddPlanarFaceLoop(0, BrepLoopType.Inner, holeBoundaries);
-            }
-
-            var extrusion = surface.Faces[0].CreateExtrusion(new Line(0, 0, 0, 0, 0, 1.8).ToNurbsCurve(), true);
-
-            return extrusion;
-        }
-
-        private void SolveNarrowPart(DataTree<Curve> dataTree, int index, double length, double maxPartLength, out int partCount)
+        private void SolveNarrowPart(int index, double length, double maxPartLength, out int partCount)
         {
             var moduleACount = Math.Floor((length - 20 + 40 / 2) / 60);
             var moduleBCount = Math.Floor((length - 50 + 20 / 2) / 60);
@@ -137,11 +98,13 @@ namespace WikiPrototypes
                 }
             }
 
-            SplitPart(dataTree, contour, splitCurves, holes, index, out partCount);
+            SplitPart(contour, splitCurves, holes, index, NarrowPartBrachIndexes, out partCount);
         }
 
-        private void SolveWidePart(DataTree<Curve> dataTree, int index, double length, double maxPartLength, out int partCount)
+        private void SolveWidePart(int index, double length, double maxPartLength, out int partCount)
         {
+            var posX = 60;
+
             var moduleACount = Math.Floor((length - 20 + 40 / 2) / 60);
             var moduleBCount = Math.Floor((length - 50 + 20 / 2) / 60);
             var rest = length - 10 - 10 - moduleACount * 40 - moduleBCount * 20;
@@ -150,8 +113,8 @@ namespace WikiPrototypes
             var holes = new List<Curve>();
             var curvesToConnect = new List<Curve>();
 
-            var botCorner = WidePartBuilder.GetEndConnector(0, 0, 0, true, 0);
-            var upCorner = WidePartBuilder.GetEndConnector(0, length, rest, moduleACount > moduleBCount, Math.PI);
+            var botCorner = WidePartBuilder.GetEndConnector(posX, 0, 0, true, 0);
+            var upCorner = WidePartBuilder.GetEndConnector(posX, length, rest, moduleACount > moduleBCount, Math.PI);
 
             curvesToConnect.Add(botCorner);
             curvesToConnect.Add(upCorner);
@@ -159,14 +122,14 @@ namespace WikiPrototypes
             for (int mA = 0; mA < moduleACount; mA++)
             {
                 var posY = 60 * mA + 40 / 2 + 10;
-                curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(0, posY));
+                curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(posX, posY));
             }
 
             for (int mB = 0; mB < moduleBCount; mB++)
             {
                 var posY = 60 * mB + 20 / 2 + 50;
-                curvesToConnect.AddRange(WidePartBuilder.GetMiddleSquareConnector(0, posY));
-                holes.AddRange(WidePartBuilder.GetMiddleHoles(0, posY));
+                curvesToConnect.AddRange(WidePartBuilder.GetMiddleSquareConnector(posX, posY));
+                holes.AddRange(WidePartBuilder.GetMiddleHoles(posX, posY));
             }
 
             var contour = Curve.JoinCurves(curvesToConnect)[0];
@@ -180,23 +143,23 @@ namespace WikiPrototypes
 
                 for (int i = 0; i <= completeModulesCount; i++)
                 {
-                    splitCurves.Add(WidePartBuilder.GetSplitCurve(0, startY + splitSeparation * i));
+                    splitCurves.Add(WidePartBuilder.GetSplitCurve(posX, startY + splitSeparation * i));
                 }
             }
 
-            SplitPart(dataTree, contour, splitCurves, holes, index, out partCount);
+            SplitPart(contour, splitCurves, holes, index, WidePartBrachIndexes, out partCount);
         }
 
-        private void SplitPart(DataTree<Curve> dataTree, Curve contour, List<Curve> splitCurves, List<Curve> holes, int index, out int partCount)
+        private void SplitPart(Curve contour, List<Curve> splitCurves, List<Curve> holes, int index, List<int> indexes, out int partCount)
         {
             if (splitCurves.Count == 0)
             {
-                var complete = new RhinoList<Curve>
-                {
-                    contour
-                };
+                var path = new GH_Path(index);
 
-                dataTree.AddRange(complete, new GH_Path(index));
+                OutsideCuts.Add(contour, path);
+                InsideCuts.AddRange(holes, path);
+
+                indexes.Add(index);
 
                 partCount = 1;
 
@@ -269,11 +232,9 @@ namespace WikiPrototypes
             for (int i = 0; i < splitParts.Count; i++)
             {
                 var splitPart = splitParts[i];
+                OutsideCuts.Add(splitPart, new GH_Path(index + i));
 
-                var curveList = new List<Curve>
-                {
-                    splitPart
-                };
+                var holesInsideSplitPart = new List<Curve>();
 
                 for (int j = holes.Count - 1; j >= 0; j--)
                 {
@@ -284,28 +245,17 @@ namespace WikiPrototypes
 
                     if (containsHole == PointContainment.Inside)
                     {
-                        curveList.Add(hole);
+                        holesInsideSplitPart.Add(hole);
                         holes.RemoveAt(j);
                     }
                 }
 
-                dataTree.AddRange(curveList, new GH_Path(index + i));
+                InsideCuts.AddRange(holesInsideSplitPart, new GH_Path(index + i));
+
+                indexes.Add(index + i);
             }
 
             partCount = splitParts.Count;
-        }
-
-        protected override System.Drawing.Bitmap Icon
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        public override Guid ComponentGuid
-        {
-            get { return new Guid("065D6821-BFBC-4F57-ABE4-14BE20E41CC5"); }
         }
     }
 }

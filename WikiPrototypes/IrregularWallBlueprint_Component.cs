@@ -6,12 +6,12 @@ using System.Collections.Generic;
 
 namespace WikiPrototypes
 {
-    public class IrregularWall : GH_Component
+    public class IrregularWallBlueprint_Component : GH_Component
     {
-        public IrregularWall()
+        public IrregularWallBlueprint_Component()
           : base("Irregular Wall", "IWall",
               "A parametric irregular wall",
-              "WikiPrototypes", "Walls")
+              "WikiPrototypes", "Blueprints")
         {
         }
 
@@ -90,7 +90,7 @@ namespace WikiPrototypes
         {
             get
             {
-                return null;
+                return Properties.Resources.irregular_wall_plan;
             }
         }
 
