@@ -1,6 +1,4 @@
-﻿using Grasshopper.Kernel.Types.Transforms;
-using Rhino.Commands;
-using Rhino.Geometry;
+﻿using Rhino.Geometry;
 using System;
 
 namespace WikiPrototypes
@@ -156,6 +154,31 @@ namespace WikiPrototypes
             return result;
         }
 
+        public static Curve GetStraightEndConnector(double posX, double posY, double excess, bool hole, double rotation)
+        {
+            var retraction = 1;
+
+            var line = new Line(+28.200 + posX, posY + retraction, 0, -28.200 + posX, posY + retraction, 0).ToNurbsCurve();
+
+            var cornerConnectors = GetRetractedCornerConnectors(posX, posY, 30, excess, hole, 0, retraction);
+
+            var curves = new Curve[]
+            {
+                cornerConnectors[0],
+                line,
+                cornerConnectors[1],
+            };
+
+            var result = Curve.JoinCurves(curves)[0];
+
+            if (rotation % (Math.PI * 2) == 0)
+                return result;
+
+            result.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return result;
+        }
+
         public static Curve GetSplitCurve(double posX, double posY)
         {
             var curves = new Curve[7];
@@ -263,6 +286,74 @@ namespace WikiPrototypes
             return result;
         }
 
+        public static Curve[] GetRetractedCornerConnectors(double posX, double posY, double xExtends, double excess, bool hole, double rotation, double retraction)
+        {
+            var result = new Curve[2];
+            var index = 0;
+
+            if (hole)
+            {
+                for (int x = -1; x <= 1; x += 2)
+                {
+                    var cornerPoints = new Point3d[]
+                    {
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + retraction, 0),
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 4.0, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 4.0, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 6.5, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 6.5, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 8.8 + excess, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 8.8 + excess, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 10 + excess, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 10 + excess, 0),
+                    };
+
+                    result[index] = new PolylineCurve(cornerPoints);
+
+                    index++;
+                }
+            }
+            else
+            {
+                for (int x = -1; x <= 1; x += 2)
+                {
+                    var cornerPoints = new Point3d[]
+                    {
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + retraction, 0),
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 4.0, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 4.0, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 6.5, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 6.5, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 8.8, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 8.8, 0),
+                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 10, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 10, 0),
+                    new Point3d(x * (-xExtends + 0.0) + posX, posY + 10 + excess, 0),
+                    };
+
+                    result[index] = new PolylineCurve(cornerPoints);
+
+                    index++;
+                }
+            }
+
+            if (rotation % (Math.PI * 2) == 0)
+                return result;
+
+            foreach (var curve in result)
+                curve.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return result;
+        }
+
         public static Curve[] GetEndMill(double posX, double posY, double rotation)
         {
             var rot90 = Math.PI * .5;
@@ -274,6 +365,25 @@ namespace WikiPrototypes
                 ConnectorBuilder.GetMillRoundShape(posX + 0.0, posY + 5.6, 0),
                 ConnectorBuilder.GetMillRoundShape(posX - 19.49, posY + 5.6, 0),
                 ConnectorBuilder.GetMillRoundShape(posX + 19.49, posY + 5.6, 0),
+            };
+
+            if (rotation % (Math.PI * 2) == 0)
+                return curves;
+
+            foreach (var curve in curves)
+                curve.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return curves;
+        }
+
+        public static Curve[] GetStraightEndMill(double posX, double posY, double rotation)
+        {
+            var rot90 = Math.PI * .5;
+
+            var curves = new Curve[]
+            {
+                ConnectorBuilder.GetMillLongRoundShape(posX + 29.1, posY + 5.25, 1.313, rot90),
+                ConnectorBuilder.GetMillLongRoundShape(posX - 29.1, posY + 5.25, 1.313, rot90),
             };
 
             if (rotation % (Math.PI * 2) == 0)

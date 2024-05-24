@@ -10,6 +10,7 @@ namespace WikiPrototypes
         public double[] Rotations { get; private set; }
         public double[] OffsetsAtStart { get; private set; }
         public double[] OffsetsAtEnd { get; private set; }
+        public int[] DeviationSigns { get; private set; }
         public Point3d[] ContourPoints { get; private set; }
 
         public GuideLinesData(Line[] guideLines)
@@ -22,6 +23,7 @@ namespace WikiPrototypes
             Rotations = new double[length];
             OffsetsAtStart = new double[length];
             OffsetsAtEnd = new double[length];
+            DeviationSigns = new int[length];
 
             SetContourPoints(guideLines);
             SetSymmetryData(guideLines);
@@ -45,6 +47,9 @@ namespace WikiPrototypes
                 var deviationLength = 14.3 * Math.Tan(deviationAngle);
                 var deviationSign = GetDeviationSign(lineDirection, nextLineDirection, planeNormal);
                 var deviationTranslation = lineDirection * deviationLength * deviationSign;
+
+                if (i > -1)
+                    DeviationSigns[i] = deviationSign;
 
                 var normalUnitTranslation = Vector3d.CrossProduct(lineDirection, planeNormal);
                 normalUnitTranslation.Unitize();

@@ -19,6 +19,13 @@ namespace WikiPrototypes
         public List<int> WidePartBrachIndexes { get; private set; }
         public List<int> TransversalPartBrachIndexes { get; private set; }
 
+        public List<int> WidePartGuideLineIndex { get; private set; }
+
+        public Transform GuideLineTransform { get; private set; }
+        public Plane GuideLinePlane { get; private set; }
+        public GuideLinesData GuideLineData { get; private set; }
+        public List<Point3d> WidePartPositions { get; private set; }
+
         public IrregularWallBlueprint(Curve curve, double maxPartLength, double maxConerLength)
         {
             OutsideCuts = new DataTree<Curve>();
@@ -29,14 +36,18 @@ namespace WikiPrototypes
             WidePartBrachIndexes = new List<int>();
             TransversalPartBrachIndexes = new List<int>();
 
-            GuideLines = GetGuideLines(curve, maxPartLength);
-            var guideLinesData = new GuideLinesData(GuideLines);
+            WidePartGuideLineIndex = new List<int>();
+            WidePartPositions = new List<Point3d>();
 
-            if (GuideLines == null)
+            GuideLines = GetGuideLines(curve, maxPartLength);
+
+            if (GuideLines == null || GuideLines.Length <= 1)
                 return;
 
-            SolveNarrowPart(guideLinesData, maxPartLength, maxConerLength, 0, out var narrowPartCount);
-            SolveWidePart(guideLinesData, maxPartLength, narrowPartCount, out var widePartCount);
+            GuideLineData = new GuideLinesData(GuideLines);
+
+            SolveNarrowPart(GuideLineData, maxPartLength, maxConerLength, 0, out var narrowPartCount);
+            SolveWidePart(GuideLineData, maxPartLength, narrowPartCount, out var widePartCount);
         }
 
         private Line[] GetGuideLines(Curve curve, double maxPartLength)
@@ -52,11 +63,17 @@ namespace WikiPrototypes
                     plane.Flip();
 
                 normal = plane.Normal;
+                GuideLinePlane = plane;
 
                 if (normal != Vector3d.ZAxis)
                 {
-                    var transformOrientation = Transform.PlaneToPlane(plane, Plane.WorldXY);
-                    curve.Transform(transformOrientation);
+                    GuideLineTransform = Transform.PlaneToPlane(plane, Plane.WorldXY);
+                    curve.Transform(GuideLineTransform);
+                }
+                else
+                {
+                    GuideLineTransform = Transform.Identity;
+                    GuideLinePlane = new Plane(curve.PointAtStart, Vector3d.XAxis, Vector3d.YAxis);
                 }
             }
 
@@ -92,10 +109,7 @@ namespace WikiPrototypes
         {
             var guideLines = guideLinesData.GuideLines;
             var contourPoints = guideLinesData.ContourPoints;
-            var offsetAtStart = guideLinesData.OffsetsAtStart;
-            var offsetAtEnd = guideLinesData.OffsetsAtEnd;
             var symmetryLines = guideLinesData.SymmetryLines;
-            var rotations = guideLinesData.Rotations;
 
             var posX = 0;
 
@@ -108,10 +122,7 @@ namespace WikiPrototypes
                 var pointA = contourPoints[i];
                 var pointB = contourPoints[i + 1];
                 contourLines[i] = new Line(pointA, pointB);
-            }
 
-            for (int i = 0; i < guideLines.Length; i++)
-            {
                 var pointC = contourPoints[contourPoints.Length - 1 - i];
                 var pointD = contourPoints[contourPoints.Length - 2 - i];
                 contourLines[guideLines.Length + i] = new Line(pointC, pointD);
@@ -139,15 +150,17 @@ namespace WikiPrototypes
                 var startOffset = Math.Abs(contourLineStart - symmetryLineStart);
                 var endOffset = contourLength - startOffset - symmetryLength;
 
-                var moduleACount = Math.Floor((symmetryLength - 20 + 40 / 2) / 60);
-                var moduleBCount = Math.Floor((symmetryLength - 50 + 20 / 2) / 60);
+                var moduleACount = Math.Floor((symmetryLength - 10 - 10 + 40 / 2) / 60);
+                var moduleBCount = Math.Floor((symmetryLength - 10 - 10 - 40 + 20 / 2) / 60);
+                if (moduleBCount >= moduleACount && moduleBCount > 0)
+                    moduleBCount--;
                 var excess = (symmetryLength - 10 - 10 - moduleACount * 40 - moduleBCount * 20) * .5;
 
-                var botEnd = WidePartBuilder.GetEndConnector(posX, 0, startOffset + excess, true, 0);
-                var upEnd = WidePartBuilder.GetEndConnector(posX, contourLength, endOffset + excess, moduleACount > moduleBCount, Math.PI);
+                var botEnd = WidePartBuilder.GetStraightEndConnector(posX, 0, startOffset + excess, true, 0);
+                var upEnd = WidePartBuilder.GetStraightEndConnector(posX, contourLength, endOffset + excess, moduleACount > moduleBCount, Math.PI);
 
-                mills.AddRange(WidePartBuilder.GetEndMill(posX, 0, 0));
-                mills.AddRange(WidePartBuilder.GetEndMill(posX, contourLength, Math.PI));
+                mills.AddRange(WidePartBuilder.GetStraightEndMill(posX, 0, 0));
+                mills.AddRange(WidePartBuilder.GetStraightEndMill(posX, contourLength, Math.PI));
 
                 curvesToConnect.Add(botEnd);
                 curvesToConnect.Add(upEnd);
@@ -185,6 +198,15 @@ namespace WikiPrototypes
 
                 SplitPart(contour, splitCurves, holes, mills, index + partCount, WidePartBrachIndexes, out var thisPartCount);
                 partCount += thisPartCount;
+
+                var guideLineCount = guideLines.Length;
+                var guideIndex = i < guideLineCount? (i % guideLineCount) + 1 : -(i % guideLineCount) - 1;
+                var pos = new Point3d(posX, 0, 0);
+                for (int w = 0; w < thisPartCount; w++)
+                {
+                    WidePartGuideLineIndex.Add(guideIndex);
+                    WidePartPositions.Add(pos);
+                }
             }
         }
 
@@ -224,8 +246,10 @@ namespace WikiPrototypes
 
                 // GET CONNECTORS COUNT
                 var freeSpaceForConnectors = symmetryLine.Length;
-                var connectorACount = Math.Floor((freeSpaceForConnectors + 40 / 2 - 10 - 10) / 60);
-                var connectorBCount = Math.Floor((freeSpaceForConnectors - 40 + 20 / 2 - 10 - 10) / 60);
+                var connectorACount = Math.Floor((freeSpaceForConnectors - 10 - 10 + 40 / 2) / 60);
+                var connectorBCount = Math.Floor((freeSpaceForConnectors - 10 - 10 - 40 + 20 / 2) / 60);
+                if (connectorBCount >= connectorACount && connectorBCount > 0)
+                    connectorBCount--;
                 var restOfSpace = freeSpaceForConnectors - connectorACount * 40 - connectorBCount * 20;
                 var connectorsOffset = restOfSpace * .5;
 
@@ -241,6 +265,17 @@ namespace WikiPrototypes
                     curvesToConnect.AddRange(IrregularSidePartBuilder.GetMiddleConnectorA(pointInLine.X, pointInLine.Y, rotation));
 
                     posibleSplitParameter.Add(parameterInCurve);
+                }
+
+                for (int mB = 0; mB < connectorBCount; mB++)
+                {
+                    var distanceInCurve = 60 * mB + 20 / 2 + 40 + connectorsOffset;
+                    var parameterInCurve = distanceInCurve / freeSpaceForConnectors;
+                    var pointInLine = symmetryLine.PointAt(parameterInCurve);
+
+                    curvesToConnect.AddRange(IrregularSidePartBuilder.GetMiddleConnectorB(pointInLine.X, pointInLine.Y, rotation));
+
+                    holes.AddRange(IrregularSidePartBuilder.GetMiddleHoles(pointInLine.X, pointInLine.Y, rotation));
                 }
 
                 // SET SPLIT CURVES IN THE PREVIUS MODULES
@@ -306,17 +341,6 @@ namespace WikiPrototypes
                             break;
                         }
                     }
-                }
-
-                for (int mB = 0; mB < connectorBCount; mB++)
-                {
-                    var distanceInCurve = 60 * mB + 20 / 2 + 40 + connectorsOffset;
-                    var parameterInCurve = distanceInCurve / freeSpaceForConnectors;
-                    var pointInLine = symmetryLine.PointAt(parameterInCurve);
-
-                    curvesToConnect.AddRange(IrregularSidePartBuilder.GetMiddleConnectorB(pointInLine.X, pointInLine.Y, rotation));
-
-                    holes.AddRange(IrregularSidePartBuilder.GetMiddleHoles(pointInLine.X, pointInLine.Y, rotation));
                 }
 
                 // BUILD CAPS & LINES TO CORNER
