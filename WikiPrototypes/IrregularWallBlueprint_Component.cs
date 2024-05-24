@@ -1,8 +1,6 @@
 ﻿using Grasshopper.Kernel;
-using Rhino;
 using Rhino.Geometry;
 using System;
-using System.Collections.Generic;
 
 namespace WikiPrototypes
 {
@@ -18,81 +16,35 @@ namespace WikiPrototypes
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddCurveParameter("Curve", "L", "Wall guide", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Max Limb Length", "M", "The maximum lenght of a part", GH_ParamAccess.item, 250);
+            pManager.AddNumberParameter("Max Straight Length", "MS", "The maximum lenght of a straight part", GH_ParamAccess.item, 250);
+            pManager.AddNumberParameter("Max Corner Length", "MC", "The maximum lenght of a limb from a corner", GH_ParamAccess.item, 100);
         }
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("Parts", "P", "Plans of the parts", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Ourside Cuts", "O", "Guidlines for outside cuts", GH_ParamAccess.tree);
+            pManager.AddCurveParameter("Inside Cuts", "I", "Guidelines for inside cuts", GH_ParamAccess.tree);
+            pManager.AddCurveParameter("Half Mills", "HM", "Shape of half mills", GH_ParamAccess.tree);
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             var curve = (Curve)null;
             var maxPartLength = 250.0;
+            var maxCornerLength = 100.0;
 
             DA.GetData(0, ref curve);
             DA.GetData(1, ref maxPartLength);
+            DA.GetData(2, ref maxCornerLength);
 
-            if (!curve.IsPlanar())
-                return;
+            var irregularWallBlueprint = new IrregularWallBlueprint(curve, maxPartLength, maxCornerLength);
 
-            if (curve.TryGetPlane(out var plane))
-            {
-                var normal = plane.Normal;
-
-                if (normal.Z < 0)
-                    plane.Flip();
-
-                normal = plane.Normal;
-
-                if (normal != Vector3d.ZAxis)
-                {
-                    var transformOrientation = Transform.PlaneToPlane(plane, Plane.WorldXY);
-                    curve.Transform(transformOrientation);
-                }
-            }
-
-            Curve[] segments;
-            if (!curve.IsPolyline())
-            {
-                var activeDoc = RhinoDoc.ActiveDoc;
-                var tolerance = activeDoc.ModelAbsoluteTolerance;
-                var angleTolerance = activeDoc.ModelAngleToleranceRadians;
-                var polylineCurve = curve.ToPolyline(tolerance, angleTolerance, 60, maxPartLength).Simplify(CurveSimplifyOptions.All, tolerance, angleTolerance);
-                segments = polylineCurve.DuplicateSegments();
-            }
-            else
-            {
-                segments = curve.DuplicateSegments();
-            }
-
-            if (segments.Length == 0)
-                return;
-
-            var guideLines = new Line[segments.Length];
-
-            for (int i = 0; i < segments.Length; i++)
-            {
-                var segment = segments[i];
-                guideLines[i] = new Line(segment.PointAtStart, segment.PointAtEnd);
-            }
-
-            var shapeResult = IrregularSidePartBuilder.GetShapes(guideLines);
-
-            var result = new List<Curve>();
-            result.AddRange(shapeResult);
-
-            DA.SetDataList(0, result);
+            DA.SetDataTree(0, irregularWallBlueprint.OutsideCuts);
+            DA.SetDataTree(1, irregularWallBlueprint.InsideCuts);
+            DA.SetDataTree(2, irregularWallBlueprint.HalfMills);
         }
 
-        protected override System.Drawing.Bitmap Icon
-        {
-            get
-            {
-                return Properties.Resources.irregular_wall_plan;
-            }
-        }
+        protected override System.Drawing.Bitmap Icon => Properties.Resources.irregular_wall_plan;
 
         public override Guid ComponentGuid
         {

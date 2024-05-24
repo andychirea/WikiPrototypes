@@ -66,8 +66,8 @@ namespace WikiPrototypes
             curvesToConnect.Add(NarrowPartBuilder.GetEndConnector(0, 0, false));
             curvesToConnect.Add(NarrowPartBuilder.GetEndConnector(0, length, true));
 
-            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, 0, false));
-            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, length, true));
+            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, 0, 0));
+            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, length, Math.PI));
 
             for (int mA = 0; mA < moduleACount; mA++)
             {

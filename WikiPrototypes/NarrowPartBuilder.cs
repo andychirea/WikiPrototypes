@@ -5,7 +5,7 @@ namespace WikiPrototypes
 {
     public static class NarrowPartBuilder
     {
-        public static Curve GetSplitCurve(double posX, double posY)
+        public static Curve GetSplitCurve(double posX, double posY, double rotation = 0)
         {
             var curves = new Curve[3];
 
@@ -33,9 +33,14 @@ namespace WikiPrototypes
             curves[1] = new Line(posX - 11.90, posY, 0, posX - 4.208, posY, 0).ToNurbsCurve();
             curves[2] = new Line(posX + 11.90, posY, 0, posX + 4.208, posY, 0).ToNurbsCurve();
 
-            var result = Curve.JoinCurves(curves);
+            var result = Curve.JoinCurves(curves)[0];
 
-            return result[0];
+            if (rotation % (Math.PI * 2) == 0)
+                return result;
+
+            result.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
+
+            return result;
         }
 
         public static Curve GetEndConnector(double posX, double posY, bool otherEnd)
@@ -95,22 +100,20 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetEndHoles(double posX, double posY, bool rotate)
+        public static Curve[] GetEndHoles(double posX, double posY, double rotation = 0.0)
         {
             var rot90 = Math.PI * .5;
 
             var result = new Curve[2];
 
-            if (!rotate)
-            {
-                result[0] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX - 12.95, posY + 5.213, rot90);
-                result[1] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX + 12.95, posY + 5.213, rot90);
-            }
-            else
-            {
-                result[0] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX - 12.95, posY - 5.213, rot90);
-                result[1] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX + 12.95, posY - 5.213, rot90);
-            }
+            result[0] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX - 12.95, posY + 5.213, rot90);
+            result[1] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX + 12.95, posY + 5.213, rot90);
+
+            if (rotation % (Math.PI * 2) == 0)
+                return result;
+
+            foreach (var curve in result)
+                curve.Rotate(rotation, Vector3d.ZAxis, new Point3d(posX, posY, 0));
 
             return result;
         }
