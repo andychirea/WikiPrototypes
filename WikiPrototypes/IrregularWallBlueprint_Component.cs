@@ -18,6 +18,8 @@ namespace WikiPrototypes
             pManager.AddCurveParameter("Curve", "L", "Wall guide", GH_ParamAccess.item);
             pManager.AddNumberParameter("Max Straight Length", "MS", "The maximum lenght of a straight part", GH_ParamAccess.item, 250);
             pManager.AddNumberParameter("Max Corner Length", "MC", "The maximum lenght of a limb from a corner", GH_ParamAccess.item, 100);
+            pManager.AddNumberParameter("Thickness", "T", "The thickness of the material used", GH_ParamAccess.item, 1.8);
+            pManager.AddNumberParameter("Milling Diameter", "MD", "The diameter of the milling bit", GH_ParamAccess.item, 0.5);
         }
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
@@ -32,10 +34,17 @@ namespace WikiPrototypes
             var curve = (Curve)null;
             var maxPartLength = 250.0;
             var maxCornerLength = 100.0;
+            var thickness = 1.8;
+            var millingDiameter = 0.5;
 
             DA.GetData(0, ref curve);
             DA.GetData(1, ref maxPartLength);
             DA.GetData(2, ref maxCornerLength);
+            DA.GetData(3, ref thickness);
+            DA.GetData(4, ref millingDiameter);
+
+            thickness = Math.Min(Math.Max(thickness, 1), 3);
+            millingDiameter = Math.Min(Math.Max(millingDiameter, .25), 1);
 
             var irregularWallBlueprint = new IrregularWallBlueprint(curve, maxPartLength, maxCornerLength);
 

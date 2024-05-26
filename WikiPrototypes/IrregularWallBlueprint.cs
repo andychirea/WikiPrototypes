@@ -159,8 +159,8 @@ namespace WikiPrototypes
                 var botEnd = WidePartBuilder.GetStraightEndConnector(posX, 0, startOffset + excess, true, 0);
                 var upEnd = WidePartBuilder.GetStraightEndConnector(posX, contourLength, endOffset + excess, moduleACount > moduleBCount, Math.PI);
 
-                mills.AddRange(WidePartBuilder.GetStraightEndMill(posX, 0, 0));
-                mills.AddRange(WidePartBuilder.GetStraightEndMill(posX, contourLength, Math.PI));
+                mills.AddRange(WidePartBuilder.GetStraightEndMill(posX, 0, 1.8, 0));
+                mills.AddRange(WidePartBuilder.GetStraightEndMill(posX, contourLength, 1.8, Math.PI));
 
                 curvesToConnect.Add(botEnd);
                 curvesToConnect.Add(upEnd);
@@ -168,7 +168,7 @@ namespace WikiPrototypes
                 for (int mA = 0; mA < moduleACount; mA++)
                 {
                     var posY = 60 * mA + 40 / 2 + 10 + excess + startOffset;
-                    curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(posX, posY));
+                    curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(posX, posY, 1.8));
 
                     mills.AddRange(WidePartBuilder.GetMiddleParallelMill(posX, posY));
                 }
@@ -179,7 +179,7 @@ namespace WikiPrototypes
                     curvesToConnect.AddRange(WidePartBuilder.GetMiddleSquareConnector(posX, posY));
                     holes.AddRange(WidePartBuilder.GetMiddleHoles(posX, posY));
 
-                    mills.AddRange(WidePartBuilder.GetMiddleSquareMill(posX, posY));
+                    mills.AddRange(WidePartBuilder.GetMiddleSquareMill(posX, posY, 1.8));
                 }
 
                 if (maxPartLength < contourLength)
@@ -354,7 +354,7 @@ namespace WikiPrototypes
                     var endConnectorCurve = IrregularSidePartBuilder.GetEndConnector(startLinePoint.X, startLinePoint.Y, connectorsOffset - 10, connectorsOffset - 10, rotation);
                     curvesToConnect.Add(endConnectorCurve);
 
-                    var endConnectorHoles = NarrowPartBuilder.GetEndHoles(startLinePoint.X, startLinePoint.Y, rotation);
+                    var endConnectorHoles = NarrowPartBuilder.GetEndHoles(startLinePoint.X, startLinePoint.Y, 1.8, rotation);
                     holes.AddRange(endConnectorHoles);
                 }
                 else if (isLast)
@@ -363,7 +363,7 @@ namespace WikiPrototypes
                     var endConnectorCurve = IrregularSidePartBuilder.GetEndConnector(endLinePoint.X, endLinePoint.Y, connectorsOffset - 10, connectorsOffset - 10, Math.PI + rotation);
                     curvesToConnect.Add(endConnectorCurve);
 
-                    var endConnectorHoles = NarrowPartBuilder.GetEndHoles(endLinePoint.X, endLinePoint.Y, Math.PI + rotation);
+                    var endConnectorHoles = NarrowPartBuilder.GetEndHoles(endLinePoint.X, endLinePoint.Y, 1.8, Math.PI + rotation);
                     holes.AddRange(endConnectorHoles);
                 }
 

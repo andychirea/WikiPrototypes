@@ -17,7 +17,7 @@ namespace WikiPrototypes
         public List<int> WidePartBrachIndexes { get; private set; }
         public List<int> TransversalPartBrachIndexes { get; private set; }
 
-        public StraightWallBlueprint(double length, double maxPartLength)
+        public StraightWallBlueprint(double length, double maxPartLength, double thickness, double millingDiameter)
         {
             OutsideCuts = new DataTree<Curve>();
             InsideCuts = new DataTree<Curve>();
@@ -27,8 +27,8 @@ namespace WikiPrototypes
             WidePartBrachIndexes = new List<int>();
             TransversalPartBrachIndexes = new List<int>();
 
-            SolveNarrowPart(0, length, maxPartLength, out var narrowPartCount);
-            SolveWidePart(narrowPartCount, length, maxPartLength, out var widePartCount);
+            SolveNarrowPart(0, length, maxPartLength, thickness, out var narrowPartCount);
+            SolveWidePart(narrowPartCount, length, maxPartLength, thickness, out var widePartCount);
             SolveTransversalParts(narrowPartCount + widePartCount, length, out _);
         }
 
@@ -36,7 +36,7 @@ namespace WikiPrototypes
         {
             var posX = -60;
 
-            var connectorCount = Math.Floor((length - 50 + 20 / 2) / 60);
+            var connectorCount = Math.Floor((length - 20) / 60);
             partCount = (int)connectorCount;
 
             for (int i = 0; i < partCount; i++)
@@ -53,10 +53,13 @@ namespace WikiPrototypes
             }
         }
 
-        private void SolveNarrowPart(int index, double length, double maxPartLength, out int partCount)
+        private void SolveNarrowPart(int index, double length, double maxPartLength, double thickness, out int partCount)
         {
-            var moduleACount = Math.Floor((length - 20 + 40 / 2) / 60);
-            var moduleBCount = Math.Floor((length - 50 + 20 / 2) / 60);
+            var connectorLength = length - 20;
+            var loopCount = Math.Floor(connectorLength / 60);
+            var restOfSpace = connectorLength - loopCount * 60;
+            var moduleACount = restOfSpace >= 40 ? loopCount + 1 : loopCount;
+            var moduleBCount = restOfSpace < 10 ?  Math.Max(loopCount - 1, 0) : loopCount;
             var rest = length - 10 - 10 - moduleACount * 40 - moduleBCount * 20;
 
             var curvesToConnect = new List<Curve>();
@@ -66,20 +69,20 @@ namespace WikiPrototypes
             curvesToConnect.Add(NarrowPartBuilder.GetEndConnector(0, 0, false));
             curvesToConnect.Add(NarrowPartBuilder.GetEndConnector(0, length, true));
 
-            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, 0, 0));
-            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, length, Math.PI));
+            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, 0, thickness, 0));
+            holes.AddRange(NarrowPartBuilder.GetEndHoles(0, length, thickness, Math.PI));
 
             for (int mA = 0; mA < moduleACount; mA++)
             {
                 var posY = 60 * mA + 40 / 2 + 10;
-                curvesToConnect.AddRange(NarrowPartBuilder.GetMiddleConnectorA(0, posY));
+                curvesToConnect.AddRange(NarrowPartBuilder.GetMiddleConnectorA(0, posY, thickness));
             }
 
             for (int mB = 0; mB < moduleBCount; mB++)
             {
                 var posY = 60 * mB + 20 / 2 + 50;
                 curvesToConnect.AddRange(NarrowPartBuilder.GetMiddleConnectorB(0, posY));
-                holes.AddRange(NarrowPartBuilder.GetMiddleHoles(0, posY));
+                holes.AddRange(NarrowPartBuilder.GetMiddleHoles(0, posY, thickness));
             }
 
             curvesToConnect.AddRange(NarrowPartBuilder.GetMiddleConnectorRest(0, length - 10 - rest * .5, rest, moduleACount <= moduleBCount));
@@ -101,12 +104,15 @@ namespace WikiPrototypes
             SplitPart(contour, splitCurves, holes, new List<Curve>(), index, NarrowPartBrachIndexes, out partCount);
         }
 
-        private void SolveWidePart(int index, double length, double maxPartLength, out int partCount)
+        private void SolveWidePart(int index, double length, double maxPartLength, double thickness, out int partCount)
         {
             var posX = 60;
 
-            var moduleACount = Math.Floor((length - 20 + 40 / 2) / 60);
-            var moduleBCount = Math.Floor((length - 50 + 20 / 2) / 60);
+            var connectorLength = length - 20;
+            var loopCount = Math.Floor(connectorLength / 60);
+            var restOfSpace = connectorLength - loopCount * 60;
+            var moduleACount = restOfSpace >= 40 ? loopCount + 1 : loopCount;
+            var moduleBCount = restOfSpace < 10 ? Math.Max(loopCount - 1, 0) : loopCount;
             var rest = length - 10 - 10 - moduleACount * 40 - moduleBCount * 20;
 
             var splitCurves = new List<Curve>();
@@ -114,11 +120,11 @@ namespace WikiPrototypes
             var mills = new List<Curve>();
             var curvesToConnect = new List<Curve>();
 
-            var botCorner = WidePartBuilder.GetEndConnector(posX, 0, 0, true, 0);
-            var upCorner = WidePartBuilder.GetEndConnector(posX, length, rest, moduleACount > moduleBCount, Math.PI);
+            var botCorner = WidePartBuilder.GetEndConnector(posX, 0, 0, thickness, true, 0);
+            var upCorner = WidePartBuilder.GetEndConnector(posX, length, rest, thickness, moduleACount > moduleBCount, Math.PI);
 
-            mills.AddRange(WidePartBuilder.GetEndMill(posX, 0, 0));
-            mills.AddRange(WidePartBuilder.GetEndMill(posX, length, Math.PI));
+            mills.AddRange(WidePartBuilder.GetEndMill(posX, 0, thickness, 0));
+            mills.AddRange(WidePartBuilder.GetEndMill(posX, length, thickness, Math.PI));
 
             curvesToConnect.Add(botCorner);
             curvesToConnect.Add(upCorner);
@@ -126,7 +132,7 @@ namespace WikiPrototypes
             for (int mA = 0; mA < moduleACount; mA++)
             {
                 var posY = 60 * mA + 40 / 2 + 10;
-                curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(posX, posY));
+                curvesToConnect.AddRange(WidePartBuilder.GetMiddleParallelConnector(posX, posY, thickness));
 
                 mills.AddRange(WidePartBuilder.GetMiddleParallelMill(posX, posY));
             }
@@ -134,10 +140,10 @@ namespace WikiPrototypes
             for (int mB = 0; mB < moduleBCount; mB++)
             {
                 var posY = 60 * mB + 20 / 2 + 50;
-                curvesToConnect.AddRange(WidePartBuilder.GetMiddleSquareConnector(posX, posY));
-                holes.AddRange(WidePartBuilder.GetMiddleHoles(posX, posY));
+                curvesToConnect.AddRange(WidePartBuilder.GetMiddleSquareConnector(posX, posY, thickness));
+                holes.AddRange(WidePartBuilder.GetMiddleHoles(posX, posY, thickness));
 
-                mills.AddRange(WidePartBuilder.GetMiddleSquareMill(posX, posY));
+                mills.AddRange(WidePartBuilder.GetMiddleSquareMill(posX, posY, thickness));
             }
 
             var contour = Curve.JoinCurves(curvesToConnect)[0];

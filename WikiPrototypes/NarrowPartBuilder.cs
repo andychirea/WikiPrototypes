@@ -73,19 +73,20 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetMiddleHoles(double posX, double posY)
+        public static Curve[] GetMiddleHoles(double posX, double posY, double thickness)
         {
             var rot180 = Math.PI;
             var rot90 = Math.PI * .5;
+            var offset = thickness - 1.8;
 
-            var hShape = ConnectorBuilder.GetHCutOff(5, 1.8, posX - 0.004, posY, 0);
-            var rShape = ConnectorBuilder.GetRoundCutOff(5, .45, posX + 12.950, posY, rot90);
+            var hShape = ConnectorBuilder.GetHCutOff(5, thickness, posX - 0.004, posY, 0);
+            var rShape = ConnectorBuilder.GetRoundCutOff(5, thickness / 4, posX + 12.950 - offset / 4, posY, rot90);
 
-            var notch = ConnectorBuilder.GetSquareNotch(0.6, 5.0, posX - 13.1, posY, rot180);
-            var lineA = new Line(posX - 13.1, posY + 2.5, 0, posX - 13.1, posY + 3.1, 0).ToNurbsCurve();
-            var lineB = new Line(posX - 13.1, posY - 2.5, 0, posX - 13.1, posY - 3.1, 0).ToNurbsCurve();
-            var lineC = new Line(posX - 13.1, posY + 3.1, 0, posX - 14.3, posY + 3.1, 0).ToNurbsCurve();
-            var lineD = new Line(posX - 13.1, posY - 3.1, 0, posX - 14.3, posY - 3.1, 0).ToNurbsCurve();
+            var notch = ConnectorBuilder.GetSquareNotch(0.6, 5.0, posX - 13.1 + offset, posY, rot180);
+            var lineA = new Line(posX - 13.1 + offset, posY + 2.5, 0, posX - 13.1 + offset, posY + 3.1, 0).ToNurbsCurve();
+            var lineB = new Line(posX - 13.1 + offset, posY - 2.5, 0, posX - 13.1 + offset, posY - 3.1, 0).ToNurbsCurve();
+            var lineC = new Line(posX - 13.1 + offset, posY + 3.1, 0, posX - 14.3, posY + 3.1, 0).ToNurbsCurve();
+            var lineD = new Line(posX - 13.1 + offset, posY - 3.1, 0, posX - 14.3, posY - 3.1, 0).ToNurbsCurve();
             var lineE = new Line(posX - 14.3, posY + 3.1, 0, posX - 14.3, posY - 3.1, 0).ToNurbsCurve();
 
             var otherShape = Curve.JoinCurves(new Curve[] { notch, lineA, lineB, lineC, lineD, lineE })[0];
@@ -100,14 +101,15 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetEndHoles(double posX, double posY, double rotation = 0.0)
+        public static Curve[] GetEndHoles(double posX, double posY, double thickness, double rotation = 0.0)
         {
             var rot90 = Math.PI * .5;
+            var offset = thickness - 1.8;
 
             var result = new Curve[2];
 
-            result[0] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX - 12.95, posY + 5.213, rot90);
-            result[1] = ConnectorBuilder.GetRoundCutOff(2.574, 0.45, posX + 12.95, posY + 5.213, rot90);
+            result[0] = ConnectorBuilder.GetRoundCutOff(2.574, thickness / 4, posX - 12.95 + offset / 4, posY + 5.213, rot90);
+            result[1] = ConnectorBuilder.GetRoundCutOff(2.574, thickness / 4, posX + 12.95 - offset / 4, posY + 5.213, rot90);
 
             if (rotation % (Math.PI * 2) == 0)
                 return result;
@@ -118,23 +120,24 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetMiddleConnectorA(double posX, double posY)
+        public static Curve[] GetMiddleConnectorA(double posX, double posY, double thickness)
         {
             var rot180 = Math.PI;
+            var offset = 1.8 - thickness;
 
             var result = new Curve[2];
 
-            var rBotNotch = ConnectorBuilder.GetSquareNotch(1.8, 16.25, posX + 14.3, posY - 11.875, 0);
-            var rTopNotch = ConnectorBuilder.GetSquareNotch(1.8, 16.25, posX + 14.3, posY + 11.875, 0);
+            var rBotNotch = ConnectorBuilder.GetSquareNotch(thickness, 16.25, posX + 14.3, posY - 11.875, 0);
+            var rTopNotch = ConnectorBuilder.GetSquareNotch(thickness, 16.25, posX + 14.3, posY + 11.875, 0);
             var rVLine = new Line(posX + 14.3, posY + 3.75, 0, posX + 14.3, posY - 3.75, 0).ToNurbsCurve();
 
             result[0] = Curve.JoinCurves(new Curve[] { rBotNotch, rTopNotch, rVLine })[0];
 
-            var lBotNotch = ConnectorBuilder.GetSquareNotch(1.8, 16.25, posX - 14.3, posY - 11.875, rot180);
-            var lTopNotch = ConnectorBuilder.GetSquareNotch(1.8, 16.25, posX - 14.3, posY + 11.875, rot180);
-            var lHTopLine = new Line(posX - 17.5, posY + 20, 0, posX - 14.3, posY + 20, 0).ToNurbsCurve();
-            var lHBotLine = new Line(posX - 17.5, posY - 20, 0, posX - 14.3, posY - 20, 0).ToNurbsCurve();
-            var lVLine = new Line(posX - 14.3, posY + 3.75, 0, posX - 14.3, posY - 3.75, 0).ToNurbsCurve();
+            var lBotNotch = ConnectorBuilder.GetSquareNotch(1.8, 16.25, posX - 14.3 - offset, posY - 11.875, rot180);
+            var lTopNotch = ConnectorBuilder.GetSquareNotch(1.8, 16.25, posX - 14.3 - offset, posY + 11.875, rot180);
+            var lHTopLine = new Line(posX - 17.5, posY + 20, 0, posX - 14.3 - offset, posY + 20, 0).ToNurbsCurve();
+            var lHBotLine = new Line(posX - 17.5, posY - 20, 0, posX - 14.3 - offset, posY - 20, 0).ToNurbsCurve();
+            var lVLine = new Line(posX - 14.3 - offset, posY + 3.75, 0, posX - 14.3 - offset, posY - 3.75, 0).ToNurbsCurve();
 
             result[1] = Curve.JoinCurves(new Curve[] { lBotNotch, lTopNotch, lHTopLine, lHBotLine, lVLine })[0];
 

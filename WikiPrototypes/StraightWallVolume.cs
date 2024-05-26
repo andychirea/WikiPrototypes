@@ -11,7 +11,7 @@ namespace WikiPrototypes
 
         public StraightWallVolume(double lenght, double maxPartLength, double thickness)
         {
-            var blueprint = new StraightWallBlueprint(lenght, maxPartLength);
+            var blueprint = new StraightWallBlueprint(lenght, maxPartLength, thickness, 0.0);
 
             var outsideCuts = blueprint.OutsideCuts;
             var insideCuts = blueprint.InsideCuts;
