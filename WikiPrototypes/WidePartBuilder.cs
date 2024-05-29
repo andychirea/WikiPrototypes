@@ -5,7 +5,7 @@ namespace WikiPrototypes
 {
     public static class WidePartBuilder
     {
-        public static Curve[] GetMiddleHoles(double posX, double posY, double materialThickness = 1.8)
+        public static Curve[] GetMiddleHoles(double posX, double posY, double materialThickness)
         {
             var result = new Curve[]
             {
@@ -17,7 +17,7 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetMiddleSquareConnector(double posX, double posY, double materialThickness = 1.8)
+        public static Curve[] GetMiddleSquareConnector(double posX, double posY, double materialThickness)
         {
             var xExtends = 30;
             var rot180 = Math.PI;
@@ -102,7 +102,7 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetMiddleParallelMill(double posX, double posY, double materialThickness = 1.8)
+        public static Curve[] GetMiddleParallelMill(double posX, double posY)
         {
             var rot90 = Math.PI * .5;
 
@@ -157,13 +157,13 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve GetStraightEndConnector(double posX, double posY, double excess, bool hole, double rotation)
+        public static Curve GetStraightEndConnector(double posX, double posY, double excess, double thickness, bool hole, double rotation)
         {
             var retraction = 1;
 
-            var line = new Line(+28.200 + posX, posY + retraction, 0, -28.200 + posX, posY + retraction, 0).ToNurbsCurve();
+            var line = new Line(+(30 - thickness) + posX, posY + retraction, 0, -(30 - thickness) + posX, posY + retraction, 0).ToNurbsCurve();
 
-            var cornerConnectors = GetRetractedCornerConnectors(posX, posY, 30, excess, hole, 0, retraction);
+            var cornerConnectors = GetRetractedCornerConnectors(posX, posY, 30, excess, thickness, hole, 0, retraction);
 
             var curves = new Curve[]
             {
@@ -250,7 +250,7 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetRetractedCornerConnectors(double posX, double posY, double xExtends, double excess, bool hole, double rotation, double retraction)
+        public static Curve[] GetRetractedCornerConnectors(double posX, double posY, double xExtends, double excess, double thickness, bool hole, double rotation, double retraction)
         {
             var result = new Curve[2];
             var index = 0;
@@ -261,18 +261,18 @@ namespace WikiPrototypes
                 {
                     var cornerPoints = new Point3d[]
                     {
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + retraction, 0),
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 2.8, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 2.8, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 4.0, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + retraction, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 4.0, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 4.0, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 6.5, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 6.5, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 7.7, 0),
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 7.7, 0),
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 8.8 + excess, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 8.8 + excess, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 10 + excess, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 6.5, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + 8.8 + excess, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 8.8 + excess, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 10 + excess, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 10 + excess, 0),
                     };
 
@@ -287,18 +287,18 @@ namespace WikiPrototypes
                 {
                     var cornerPoints = new Point3d[]
                     {
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + retraction, 0),
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 2.8, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 2.8, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 4.0, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + retraction, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 2.8, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 4.0, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 4.0, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 6.5, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 6.5, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 7.7, 0),
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 7.7, 0),
-                    new Point3d(x * (-xExtends + 1.8) + posX, posY + 8.8, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 8.8, 0),
-                    new Point3d(x * (-xExtends + 2.4) + posX, posY + 10, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 6.5, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + 7.7, 0),
+                    new Point3d(x * (-xExtends + thickness) + posX, posY + 8.8, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 8.8, 0),
+                    new Point3d(x * (-xExtends + thickness + 0.6) + posX, posY + 10, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 10, 0),
                     new Point3d(x * (-xExtends + 0.0) + posX, posY + 10 + excess, 0),
                     };
@@ -347,8 +347,8 @@ namespace WikiPrototypes
 
             var curves = new Curve[]
             {
-                ConnectorBuilder.GetMillLongRoundShape(posX + 29.1, posY + 5.25, 1.313, thickness, rot90),
-                ConnectorBuilder.GetMillLongRoundShape(posX - 29.1, posY + 5.25, 1.313, thickness, rot90),
+                ConnectorBuilder.GetMillLongRoundShape(posX + (30 - thickness * .5), posY + 5.25, 1.313, thickness, rot90),
+                ConnectorBuilder.GetMillLongRoundShape(posX - (30 - thickness * .5), posY + 5.25, 1.313, thickness, rot90),
             };
 
             if (rotation % (Math.PI * 2) == 0)
@@ -360,7 +360,7 @@ namespace WikiPrototypes
             return curves;
         }
 
-        public static Curve GetSplitCurve(double posX, double posY)
+        public static Curve GetSplitCurve(double posX, double posY, double thickness)
         {
             var curves = new Curve[7];
 
@@ -389,8 +389,10 @@ namespace WikiPrototypes
                 curves[x + 1] = shape;
             }
 
-            curves[3] = new Line(posX - 28.20, posY, 0, posX - 15.835, posY, 0).ToNurbsCurve();
-            curves[4] = new Line(posX + 28.20, posY, 0, posX + 15.835, posY, 0).ToNurbsCurve();
+            var offset = thickness - 1.8;
+
+            curves[3] = new Line(posX - 28.20 + offset, posY, 0, posX - 15.835, posY, 0).ToNurbsCurve();
+            curves[4] = new Line(posX + 28.20 - offset, posY, 0, posX + 15.835, posY, 0).ToNurbsCurve();
             curves[5] = new Line(posX - 9.505, posY, 0, posX - 3.165, posY, 0).ToNurbsCurve();
             curves[6] = new Line(posX + 9.505, posY, 0, posX + 3.165, posY, 0).ToNurbsCurve();
 

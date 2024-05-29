@@ -17,7 +17,7 @@ namespace WikiPrototypes
             pManager.AddNumberParameter("Length", "L", "The wall length", GH_ParamAccess.item, 120);
             pManager.AddNumberParameter("Max Part Length", "M", "The maximum lenght of a part", GH_ParamAccess.item, 250);
             pManager.AddNumberParameter("Thickness", "T", "The thickness of the material used", GH_ParamAccess.item, 1.8);
-            pManager.AddNumberParameter("Milling Diameter", "MD", "The diameter of the milling bit", GH_ParamAccess.item, 0.5);
+            pManager.AddNumberParameter("Milling Diameter", "MD", "The diameter of the milling bit", GH_ParamAccess.item, 0);
         }
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
@@ -32,16 +32,16 @@ namespace WikiPrototypes
             var length = 120.0;
             var maxPartLength = 250.0;
             var thickness = 1.8;
-            var millingDiameter = 0.5;
+            var millingDiameter = 0.0;
 
             DA.GetData(0, ref length);
             DA.GetData(1, ref maxPartLength);
             DA.GetData(2, ref thickness);
             DA.GetData(3, ref millingDiameter);
 
-            maxPartLength = Math.Max(maxPartLength, 60);
+            maxPartLength = Math.Max(maxPartLength, 30);
             thickness = Math.Min(Math.Max(thickness, 1), 3);
-            millingDiameter = Math.Min(Math.Max(millingDiameter, .25), 1);
+            millingDiameter = Math.Min(Math.Max(millingDiameter, 0), 1);
 
             length = Math.Max(length, 60);
             maxPartLength = Math.Max(maxPartLength, 60);

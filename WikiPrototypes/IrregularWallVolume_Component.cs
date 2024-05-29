@@ -38,6 +38,13 @@ namespace WikiPrototypes
             DA.GetData(2, ref maxCornerLength);
             DA.GetData(3, ref thickness);
 
+            if (curve == null)
+                return;
+
+            maxStraightLength = Math.Max(maxStraightLength, 120);
+            maxCornerLength = Math.Max(maxCornerLength, 10);
+            thickness = Math.Min(Math.Max(thickness, 1), 3);
+
             var straightWallVolume = new IrregularWallVolume(curve, maxStraightLength, maxCornerLength, thickness);
 
             DA.SetDataList(0, straightWallVolume.Shapes);

@@ -44,20 +44,20 @@ namespace WikiPrototypes
                 nextLineDirection.Unitize();
 
                 var deviationAngle = (Math.PI - Vector3d.VectorAngle(-lineDirection, nextLineDirection)) * .5;
-                var deviationLength = 14.3 * Math.Tan(deviationAngle);
                 var deviationSign = GetDeviationSign(lineDirection, nextLineDirection, planeNormal);
-                var deviationTranslation = lineDirection * deviationLength * deviationSign;
+                var cornerLength = 14.3 * Math.Tan(deviationAngle);
+                var lineTranslation = lineDirection * cornerLength * deviationSign;
 
                 if (i > -1)
                     DeviationSigns[i] = deviationSign;
 
-                var normalUnitTranslation = Vector3d.CrossProduct(lineDirection, planeNormal);
-                normalUnitTranslation.Unitize();
-                var normalTranslation = normalUnitTranslation * 14.3;
+                var perpendicularVector = Vector3d.CrossProduct(lineDirection, planeNormal);
+                perpendicularVector.Unitize();
+                var perpendicularTranslation = perpendicularVector * 14.3;
 
                 var segmentEndPoint = i == -1 ? guideLine.PointAt(0) : guideLine.PointAt(1);
-                ContourPoints[i + 1] = segmentEndPoint + normalTranslation + deviationTranslation;
-                ContourPoints[ContourPoints.Length - 2 - i] = segmentEndPoint - normalTranslation - deviationTranslation;
+                ContourPoints[i + 1] = segmentEndPoint + perpendicularTranslation + lineTranslation;
+                ContourPoints[ContourPoints.Length - 2 - i] = segmentEndPoint - perpendicularTranslation - lineTranslation;
             }
         }
 
@@ -76,21 +76,21 @@ namespace WikiPrototypes
                 var rotation = Vector3d.VectorAngle(lineDirection, horizontalDirection) * verticalDirection - Math.PI * .5;
 
                 // GET AXIS SEGMENT OF SYMMETRICAL CONNECTIONS
-                var startCornerPoint = ContourPoints[i];
-                var endCornerPoint = ContourPoints[i + 1];
                 var unitDirection = lineDirection;
                 unitDirection.Unitize();
 
-                var startCornerBisectorSegment = startCornerPoint - startLinePoint;
-                var startCornerBisectorAngle = Vector3d.VectorAngle(unitDirection, startCornerBisectorSegment);
+                var startCornerPoint = ContourPoints[i];
+                var startCornerVector = startCornerPoint - startLinePoint;
+                var startCornerBisectorAngle = Vector3d.VectorAngle(unitDirection, startCornerVector);
                 var startCornerBisectorAngleMin = Math.Min(startCornerBisectorAngle, Math.PI - startCornerBisectorAngle);
-                var startAxisSegmentDistanceFromCorner = Math.Cos(startCornerBisectorAngleMin) * startCornerBisectorSegment.Length;
+                var startAxisSegmentDistanceFromCorner = Math.Cos(startCornerBisectorAngleMin) * startCornerVector.Length;
                 var startAxisSegmentPoint = startLinePoint + unitDirection * startAxisSegmentDistanceFromCorner;
 
-                var endCornerBisectorSegment = endCornerPoint - endLinePoint;
-                var endCornerBisectorAngle = Vector3d.VectorAngle(-unitDirection, endCornerBisectorSegment);
+                var endCornerPoint = ContourPoints[i + 1];
+                var endCornerVector = endCornerPoint - endLinePoint;
+                var endCornerBisectorAngle = Vector3d.VectorAngle(-unitDirection, endCornerVector);
                 var endCornerBisectorAngleMax = Math.Max(endCornerBisectorAngle, Math.PI - endCornerBisectorAngle);
-                var endAxisSegmentDistanceFromCorner = Math.Cos(endCornerBisectorAngleMax) * endCornerBisectorSegment.Length;
+                var endAxisSegmentDistanceFromCorner = Math.Cos(endCornerBisectorAngleMax) * endCornerVector.Length;
                 var endAxisSegmentPoint = endLinePoint + unitDirection * endAxisSegmentDistanceFromCorner;
 
                 SymmetryLines[i] = new Line(startAxisSegmentPoint, endAxisSegmentPoint);
@@ -104,7 +104,7 @@ namespace WikiPrototypes
         {
             var guideVector = Vector3d.CrossProduct(currentVector, planeNormal);
             var dotProduct = guideVector.X * referenceVector.X + guideVector.Y * referenceVector.Y + guideVector.Z * referenceVector.Z;
-            return -Math.Sign(dotProduct);
+            return Math.Sign(dotProduct) == 0? 1 : -Math.Sign(dotProduct);
         }
     }
 }

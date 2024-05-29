@@ -37,8 +37,8 @@ namespace WikiPrototypes
             Parallel.Invoke(actions);
 
             var narrowPartReferencePlane = new Plane(new Point3d(0, 0, thickness * .5), Vector3d.XAxis, Vector3d.ZAxis);
-            var narrowPartFinalRightPlane = new Plane(new Point3d(29.1, 0, 0), -Vector3d.YAxis, -Vector3d.XAxis);
-            var narrowPartFinalLeftPlane = new Plane(new Point3d(-29.1, 0, 0), -Vector3d.YAxis, -Vector3d.XAxis);
+            var narrowPartFinalRightPlane = new Plane(new Point3d((30 - thickness / 2), 0, 0), -Vector3d.YAxis, -Vector3d.XAxis);
+            var narrowPartFinalLeftPlane = new Plane(new Point3d(-(30 - thickness / 2), 0, 0), -Vector3d.YAxis, -Vector3d.XAxis);
             var narrowPartRightTranform = Transform.PlaneToPlane(narrowPartReferencePlane, narrowPartFinalRightPlane);
             var narrowPartLeftTranform = Transform.PlaneToPlane(narrowPartReferencePlane, narrowPartFinalLeftPlane);
 
@@ -57,8 +57,8 @@ namespace WikiPrototypes
             }
 
             var widePartReferencePlane = new Plane(new Point3d(60, 0, thickness * .5), Vector3d.XAxis, Vector3d.ZAxis);
-            var widePartFinalRightPlane = new Plane(new Point3d(0, -13.4, 0), Vector3d.XAxis, -Vector3d.YAxis);
-            var widePartFinalLeftPlane = new Plane(new Point3d(0, 13.4, 0), Vector3d.XAxis, -Vector3d.YAxis);
+            var widePartFinalRightPlane = new Plane(new Point3d(0, -(14.3 - thickness / 2), 0), Vector3d.XAxis, -Vector3d.YAxis);
+            var widePartFinalLeftPlane = new Plane(new Point3d(0, 14.3 - thickness / 2, 0), Vector3d.XAxis, -Vector3d.YAxis);
             var widePartRightTranform = Transform.PlaneToPlane(widePartReferencePlane, widePartFinalRightPlane);
             var widePartLeftTranform = Transform.PlaneToPlane(widePartReferencePlane, widePartFinalLeftPlane);
 

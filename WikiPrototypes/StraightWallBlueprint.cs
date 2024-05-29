@@ -9,8 +9,8 @@ namespace WikiPrototypes
 {
     public class StraightWallBlueprint
     {
-        public DataTree<Curve> OutsideCuts { get; private set; } // Contours
-        public DataTree<Curve> InsideCuts { get; private set; } // Holes
+        public DataTree<Curve> OutsideCuts { get; private set; }
+        public DataTree<Curve> InsideCuts { get; private set; }
         public DataTree<Curve> HalfMills { get; private set; }
 
         public List<int> NarrowPartBrachIndexes { get; private set; }
@@ -27,22 +27,29 @@ namespace WikiPrototypes
             WidePartBrachIndexes = new List<int>();
             TransversalPartBrachIndexes = new List<int>();
 
-            SolveNarrowPart(0, length, maxPartLength, thickness, out var narrowPartCount);
-            SolveWidePart(narrowPartCount, length, maxPartLength, thickness, out var widePartCount);
-            SolveTransversalParts(narrowPartCount + widePartCount, length, out _);
+            SolveNarrowPart(0, length, maxPartLength, thickness, millingDiameter, out var narrowPartCount);
+            SolveWidePart(narrowPartCount, length, maxPartLength, thickness, millingDiameter, out var widePartCount);
+            SolveTransversalParts(narrowPartCount + widePartCount, millingDiameter, length, out _);
         }
 
-        private void SolveTransversalParts(int index, double length, out int partCount)
+        private void SolveTransversalParts(int index, double millingDiameter, double length, out int partCount)
         {
             var posX = -60;
 
-            var connectorCount = Math.Floor((length - 20) / 60);
+            var connectorLength = length - 20;
+            var loopCount = Math.Floor(connectorLength / 60);
+            var restOfSpace = connectorLength - loopCount * 60;
+            var connectorCount = restOfSpace < 10 ? Math.Max(loopCount - 1, 0) : loopCount;
             partCount = (int)connectorCount;
 
             for (int i = 0; i < partCount; i++)
             {
-                var translation = Transform.Translation(posX, 60 + 60 * i, 0);
                 var contour = TransversalPartBuilder.GetContour();
+
+                if (millingDiameter > 0)
+                    contour = contour.Offset(Plane.WorldXY, millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
+                
+                var translation = Transform.Translation(posX, 60 + 60 * i, 0);
                 contour.Transform(translation);
 
                 OutsideCuts.Add(contour, new GH_Path(index + i));
@@ -53,7 +60,7 @@ namespace WikiPrototypes
             }
         }
 
-        private void SolveNarrowPart(int index, double length, double maxPartLength, double thickness, out int partCount)
+        private void SolveNarrowPart(int index, double length, double maxPartLength, double thickness, double millingDiameter, out int partCount)
         {
             var connectorLength = length - 20;
             var loopCount = Math.Floor(connectorLength / 60);
@@ -97,14 +104,14 @@ namespace WikiPrototypes
 
                 for (int i = 0; i <= completeModulesCount; i++)
                 {
-                    splitCurves.Add(NarrowPartBuilder.GetSplitCurve(0, startY + splitSeparation * i));
+                    splitCurves.Add(NarrowPartBuilder.GetSplitCurve(0, startY + splitSeparation * i, thickness, 0));
                 }
             }
 
-            SplitPart(contour, splitCurves, holes, new List<Curve>(), index, NarrowPartBrachIndexes, out partCount);
+            SplitPart(millingDiameter, contour, splitCurves, holes, new List<Curve>(), index, NarrowPartBrachIndexes, out partCount);
         }
 
-        private void SolveWidePart(int index, double length, double maxPartLength, double thickness, out int partCount)
+        private void SolveWidePart(int index, double length, double maxPartLength, double thickness, double millingDiameter, out int partCount)
         {
             var posX = 60;
 
@@ -156,18 +163,33 @@ namespace WikiPrototypes
 
                 for (int i = 0; i <= completeModulesCount; i++)
                 {
-                    splitCurves.Add(WidePartBuilder.GetSplitCurve(posX, startY + splitSeparation * i));
+                    splitCurves.Add(WidePartBuilder.GetSplitCurve(posX, startY + splitSeparation * i, thickness));
                 }
             }
 
-            SplitPart(contour, splitCurves, holes, mills, index, WidePartBrachIndexes, out partCount);
+            SplitPart(millingDiameter, contour, splitCurves, holes, mills, index, WidePartBrachIndexes, out partCount);
         }
 
-        private void SplitPart(Curve contour, List<Curve> splitCurves, List<Curve> holes, List<Curve> mills, int index, List<int> indexes, out int partCount)
+        private void SplitPart(double millingDiameter, Curve contour, List<Curve> splitCurves, List<Curve> holes, List<Curve> mills, int index, List<int> indexes, out int partCount)
         {
             if (splitCurves.Count == 0)
             {
                 var path = new GH_Path(index);
+
+                if (millingDiameter > 0)
+                {
+                    contour = contour.Offset(Plane.WorldXY, millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
+
+                    for (int i = 0; i < holes.Count; i++)
+                    {
+                        holes[i] = holes[i].Offset(Plane.WorldXY, -millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
+                    }
+
+                    for (int i = 0; i < mills.Count; i++)
+                    {
+                        mills[i] = mills[i].Offset(Plane.WorldXY, millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
+                    }
+                }
 
                 OutsideCuts.Add(contour, path);
                 InsideCuts.AddRange(holes, path);
@@ -246,6 +268,10 @@ namespace WikiPrototypes
             for (int i = 0; i < splitParts.Count; i++)
             {
                 var splitPart = splitParts[i];
+
+                if (millingDiameter > 0)
+                    splitPart = splitPart.Offset(Plane.WorldXY, millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
+
                 OutsideCuts.Add(splitPart, new GH_Path(index + i));
 
                 var boundingBox = splitPart.GetBoundingBox(false);
@@ -266,6 +292,14 @@ namespace WikiPrototypes
                     }
                 }
 
+                if (millingDiameter > 0)
+                {
+                    for (int j = 0; j < holes.Count; j++)
+                    {
+                        holes[j] = holes[j].Offset(Plane.WorldXY, -millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
+                    }
+                }
+
                 InsideCuts.AddRange(holesInsideSplitPart, new GH_Path(index + i));
 
                 var millsFromSplitPart = new List<Curve>();
@@ -281,6 +315,14 @@ namespace WikiPrototypes
                     {
                         millsFromSplitPart.Add(mill);
                         mills.RemoveAt(j);
+                    }
+                }
+
+                if (millingDiameter > 0)
+                {
+                    for (int j = 0; j < mills.Count; j++)
+                    {
+                        mills[j] = mills[j].Offset(Plane.WorldXY, millingDiameter / 2, 0.001, CurveOffsetCornerStyle.Sharp)[0];
                     }
                 }
 

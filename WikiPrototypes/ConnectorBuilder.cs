@@ -215,6 +215,8 @@ namespace WikiPrototypes
             var polyline = new PolylineCurve(result);
             polyline.Rotate(rotation, Vector3d.ZAxis, center);
 
+            polyline.Reverse();
+
             return polyline;
         }
 

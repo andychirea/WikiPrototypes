@@ -11,7 +11,7 @@ namespace WikiPrototypes
 
         public IrregularWallVolume(Curve curve, double maxStraightLength, double maxCornerLength, double thickness)
         {
-            var blueprint = new IrregularWallBlueprint(curve, maxStraightLength, maxCornerLength);
+            var blueprint = new IrregularWallBlueprint(curve, maxStraightLength, maxCornerLength, thickness, 0.0);
 
             var outsideCuts = blueprint.OutsideCuts;
             var insideCuts = blueprint.InsideCuts;
@@ -39,8 +39,8 @@ namespace WikiPrototypes
             var firstGuidePoint = blueprint.GuideLines[0].PointAt(0);
             var guideLinePlane = blueprint.GuideLinePlane;
             var narrowPartReferencePlane = new Plane(firstGuidePoint + new Point3d(0, 0, thickness * .5), Vector3d.XAxis, Vector3d.YAxis);
-            var narrowPartFinalRightPlane = new Plane(guideLinePlane.Origin + guideLinePlane.ZAxis * 29.1, guideLinePlane.XAxis, guideLinePlane.YAxis);
-            var narrowPartFinalLeftPlane = new Plane(guideLinePlane.Origin - guideLinePlane.ZAxis * 29.1, guideLinePlane.XAxis, guideLinePlane.YAxis);
+            var narrowPartFinalRightPlane = new Plane(guideLinePlane.Origin + guideLinePlane.ZAxis * (30 - thickness / 2), guideLinePlane.XAxis, guideLinePlane.YAxis);
+            var narrowPartFinalLeftPlane = new Plane(guideLinePlane.Origin - guideLinePlane.ZAxis * (30 - thickness / 2), guideLinePlane.XAxis, guideLinePlane.YAxis);
             var narrowPartRightTranform = Transform.PlaneToPlane(narrowPartReferencePlane, narrowPartFinalRightPlane);
             var narrowPartLeftTranform = Transform.PlaneToPlane(narrowPartReferencePlane, narrowPartFinalLeftPlane);
 
@@ -99,7 +99,7 @@ namespace WikiPrototypes
                 var guideOffsetVector = -newPlane.YAxis * guideOffset * sign * deviationSign;
                 
                 var widePartReferencePlane = new Plane(referencePos, Vector3d.XAxis, Vector3d.YAxis);
-                var widePartFinalPlane = new Plane(point - sign * newPlane.ZAxis * 13.4 + guideOffsetVector, newPlane.XAxis, newPlane.YAxis);
+                var widePartFinalPlane = new Plane(point - sign * newPlane.ZAxis * (14.3 - thickness / 2) + guideOffsetVector, newPlane.XAxis, newPlane.YAxis);
                 var widePartTranform = Transform.PlaneToPlane(widePartReferencePlane, widePartFinalPlane);
 
                 var index = widePartIndexes[i];

@@ -34,6 +34,7 @@ namespace WikiPrototypes
             DA.GetData(1, ref maxPartLength);
             DA.GetData(2, ref thickness);
 
+            maxPartLength = Math.Max(maxPartLength, 30);
             thickness = Math.Min(Math.Max(thickness, 1), 3);
 
             var straightWallVolume = new StraightWallVolume(length, maxPartLength, thickness);

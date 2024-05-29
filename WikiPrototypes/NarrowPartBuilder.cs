@@ -5,7 +5,7 @@ namespace WikiPrototypes
 {
     public static class NarrowPartBuilder
     {
-        public static Curve GetSplitCurve(double posX, double posY, double rotation = 0)
+        public static Curve GetSplitCurve(double posX, double posY, double thickness, double rotation)
         {
             var curves = new Curve[3];
 
@@ -29,9 +29,11 @@ namespace WikiPrototypes
 
             var shapeParts = new Curve[] { arcA, arcB, arcC, arcD, lineA, lineB, lineC };
 
+            var offset = thickness - 1.8;
+
             curves[0] = Curve.JoinCurves(shapeParts)[0];
-            curves[1] = new Line(posX - 11.90, posY, 0, posX - 4.208, posY, 0).ToNurbsCurve();
-            curves[2] = new Line(posX + 11.90, posY, 0, posX + 4.208, posY, 0).ToNurbsCurve();
+            curves[1] = new Line(posX - 11.90 + offset, posY, 0, posX - 4.208, posY, 0).ToNurbsCurve();
+            curves[2] = new Line(posX + 11.90 - offset, posY, 0, posX + 4.208, posY, 0).ToNurbsCurve();
 
             var result = Curve.JoinCurves(curves)[0];
 
@@ -101,7 +103,7 @@ namespace WikiPrototypes
             return result;
         }
 
-        public static Curve[] GetEndHoles(double posX, double posY, double thickness, double rotation = 0.0)
+        public static Curve[] GetEndHoles(double posX, double posY, double thickness, double rotation)
         {
             var rot90 = Math.PI * .5;
             var offset = thickness - 1.8;
